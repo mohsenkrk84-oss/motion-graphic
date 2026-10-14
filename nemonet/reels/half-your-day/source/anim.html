@@ -1,0 +1,156 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Yekan;src:url(IRANYekanWebBold.ttf);font-weight:700}
+@font-face{font-family:Yekan;src:url(IRANYekanWebRegular.ttf);font-weight:400}
+html,body{margin:0;padding:0;background:#000;overflow:hidden}
+svg{display:block}
+text{font-family:Yekan}
+</style></head>
+<body>
+<svg id="stage" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- stable crayon grain: fixed seed, so it never flickers -->
+  <filter id="crayon" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035 0.55" numOctaves="2" seed="4" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.10  0 0 0 0 0.08  0 0 0 0 0.12  0 0 0 -0.95 0.52" result="dark"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.04 0.5" numOctaves="2" seed="11" result="n2"/>
+    <feColorMatrix in="n2" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -0.9 0.48" result="lite"/>
+    <feComposite in="dark" in2="SourceAlpha" operator="in" result="d2"/>
+    <feComposite in="lite" in2="SourceAlpha" operator="in" result="l2"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="d2"/><feMergeNode in="l2"/></feMerge>
+  </filter>
+  <filter id="paper" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="9"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.3  0 0 0 0 0.25  0 0 0 0.07 0"/>
+  </filter>
+  <pattern id="tiles" width="90" height="90" patternUnits="userSpaceOnUse">
+    <rect width="90" height="90" fill="#CFE3E4"/><path d="M0 .5H90M.5 0V90" stroke="#B2CDD0" stroke-width="3"/>
+  </pattern>
+  <pattern id="stripes" width="44" height="44" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+    <rect width="44" height="44" fill="#BFD7EC"/><rect width="16" height="44" fill="#93B6DA"/>
+  </pattern>
+  <clipPath id="phoneScreen"><rect x="-205" y="-400" width="410" height="800" rx="44"/></clipPath>
+</defs>
+<g id="world"></g>
+<g id="fx"></g>
+<rect id="grain" width="1080" height="1920" filter="url(#paper)" pointer-events="none"/>
+<g id="captions"></g>
+</svg>
+
+<script src="vendor/gsap.min.js"></script>
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const C = {
+  ink:"#2B2730", wallWarm:"#EFE2CB", wallBlue:"#CFE3E4", floor:"#E5D4B8",
+  skin:"#F5D5B8", skinSh:"#E9BE9C", cheek:"#EE9E86", hair:"#2F2A2C",
+  sweater:"#D8704F", navy:"#34425F", mustard:"#E8B04A", sky:"#27365A", skyDawn:"#4B5F8C",
+  teal:"#167A80", tealL:"#3FA1A2", cream:"#FBF6EC", red:"#D9534A", wood:"#B9845A", woodD:"#93633F",
+  pjA:"#BFD7EC", pjB:"#93B6DA", grey:"#9AA0A6", white:"#FFFFFF", green:"#47B36B"
+};
+const SW = 6; // outline width
+
+// ---------- tiny SVG helpers ----------
+function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function g(parent, attrs={}){ return el("g", attrs, parent); }
+function P(parent, d, fill, extra={}){ return el("path", Object.assign({d, fill, stroke:C.ink, "stroke-width":SW, "stroke-linejoin":"round", "stroke-linecap":"round"}, extra), parent); }
+function L(parent, d, color=C.ink, w=SW, extra={}){ return el("path", Object.assign({d, fill:"none", stroke:color, "stroke-width":w, "stroke-linecap":"round", "stroke-linejoin":"round"}, extra), parent); }
+function R(parent, x,y,w,h,r,fill,extra={}){ return el("rect", Object.assign({x,y,width:w,height:h,rx:r,fill,stroke:C.ink,"stroke-width":SW}, extra), parent); }
+function O(parent, cx,cy,rx,ry,fill,extra={}){ return el("ellipse", Object.assign({cx,cy,rx,ry,fill,stroke:C.ink,"stroke-width":SW}, extra), parent); }
+function T(parent, x,y,str,size,fill,weight=700,extra={}){ const t=el("text", Object.assign({x,y,"font-size":size,fill,"font-weight":weight,"text-anchor":"middle","dominant-baseline":"central",direction:"rtl"}, extra), parent); t.textContent=str; return t; }
+const fa = n => String(n).replace(/[0-9]/g, d=>"۰۱۲۳۴۵۶۷۸۹"[d]);
+function tex(parent){ return g(parent,{filter:"url(#crayon)"}); }  // textured layer
+
+// ---------- characters ----------
+function head(p, mood="open"){ // centered at 0,0 r~95
+  const h=g(p);
+  O(h,-92,10,20,28,C.skin); O(h,92,10,20,28,C.skin);
+  O(h,0,0,92,100,C.skin);
+  // hair
+  P(h,"M-96 -6 C-104 -80 -60 -122 0 -124 C62 -126 104 -88 98 -8 C86 -40 70 -56 40 -60 C30 -44 -6 -40 -30 -52 C-50 -40 -78 -34 -96 -6Z",C.hair);
+  if(mood==="messy"){ L(h,"M-20 -122 C-30 -150 -10 -160 -4 -140",C.ink,6); P(h,"M10 -124 C20 -160 50 -150 40 -122Z",C.hair); }
+  // cheeks
+  el("ellipse",{cx:-52,cy:38,rx:18,ry:11,fill:C.cheek,opacity:.7},h); el("ellipse",{cx:52,cy:38,rx:18,ry:11,fill:C.cheek,opacity:.7},h);
+  // eyes
+  if(mood==="sleepy"){
+    for(const s of [-1,1]){ L(h,`M${s*34-20} 6 Q${s*34} 14 ${s*34+20} 6`,C.ink,6); L(h,`M${s*34-16} 24 Q${s*34} 30 ${s*34+16} 24`,"#B9A08C",4); }
+    L(h,"M-14 64 Q0 58 14 64",C.ink,5);
+  } else if(mood==="happy"){
+    for(const s of [-1,1]) L(h,`M${s*34-16} 10 Q${s*34} -6 ${s*34+16} 10`,C.ink,6);
+    P(h,"M-30 50 Q0 92 30 50Z",C.red,{"stroke-width":5});
+  } else if(mood==="shock"){
+    for(const s of [-1,1]){ O(h,s*34,6,15,18,C.white,{"stroke-width":4}); el("circle",{cx:s*34,cy:8,r:8,fill:C.ink},h); }
+    O(h,0,64,13,16,"#7A3B36",{"stroke-width":5});
+  } else {
+    for(const s of [-1,1]) el("ellipse",{cx:s*34,cy:8,rx:9,ry:12,fill:C.ink},h);
+    L(h,"M-22 56 Q0 72 22 56",C.ink,5);
+  }
+  // brows + nose
+  if(mood!=="happy") for(const s of [-1,1]) L(h,`M${s*34-18} -22 Q${s*34} ${mood==="sleepy"?-16:-30} ${s*34+18} -22`,C.ink,5);
+  L(h,"M2 22 Q-8 38 6 42",C.ink,4.5);
+  return h;
+}
+
+function torso(p, outfit="sweater", w=150){
+  const t=tex(p);
+  const fill = outfit==="pajama" ? "url(#stripes)" : C.sweater;
+  P(t,`M${-w} 260 C${-w} 120 ${-w+20} 60 -60 40 L60 40 C${w-20} 60 ${w} 120 ${w} 260Z`,fill);
+  P(t,"M-46 42 Q0 84 46 42 Z",C.skin,{"stroke-width":5});
+  if(outfit==="sweater") L(t,"M-56 44 Q0 98 56 44",C.ink,5);
+  return t;
+}
+
+function hand(p,x,y,s=1,rot=0){ const h=g(p,{transform:`translate(${x} ${y}) rotate(${rot}) scale(${s})`}); O(h,0,0,26,22,C.skin,{"stroke-width":5}); L(h,"M-8 -18 C-6 -34 6 -34 8 -18",C.ink,5); return h; }
+function arm(p,d,color,w=46){ const a=g(p); L(a,d,C.ink,w+12); L(a,d,color,w); return a; }
+
+function man(p, {x=0,y=0,s=1,mood="open",outfit="sweater"}={}){
+  const m=g(p,{transform:`translate(${x} ${y}) scale(${s})`});
+  torso(m,outfit); const hd=g(m,{transform:"translate(0 -70)"}); head(hd,mood); return m;
+}
+
+function sampler(p,{x=0,y=0,s=1}={}){
+  const w=g(p,{transform:`translate(${x} ${y}) scale(${s})`});
+  // legs + shoes
+  const lg=tex(w); R(lg,-62,330,52,230,14,C.navy); R(lg,10,330,52,230,14,C.navy);
+  P(w,"M-74 556 h66 v26 h-80 Z",C.ink); P(w,"M8 556 h66 v26 h-58 Z",C.ink);
+  // coat
+  const ct=tex(w);
+  P(ct,"M-128 360 C-138 180 -120 90 -70 70 L70 70 C120 90 138 180 128 360 Z",C.teal);
+  P(ct,"M-40 70 L0 150 L40 70 Z",C.white,{"stroke-width":5});
+  L(ct,"M0 150 V360",C.ink,5);
+  R(ct,40,190,62,40,8,C.cream,{"stroke-width":4}); // badge
+  // hijab + face
+  const hj=tex(w);
+  P(hj,"M-110 90 C-130 -30 -100 -120 0 -126 C100 -120 130 -30 110 90 C80 70 -80 70 -110 90Z","#3C4A6B");
+  O(w,0,-14,72,84,C.skin);
+  P(hj,"M-78 -10 C-80 -80 -40 -102 0 -102 C40 -102 80 -80 78 -10 C60 -60 -60 -60 -78 -10Z","#3C4A6B");
+  for(const s2 of [-1,1]){ el("ellipse",{cx:s2*28,cy:-8,rx:8,ry:11,fill:C.ink},w); el("ellipse",{cx:s2*44,cy:24,rx:15,ry:9,fill:C.cheek,opacity:.7},w); }
+  L(w,"M-18 34 Q0 50 18 34",C.ink,5); L(w,"M2 4 Q-6 18 6 20",C.ink,4);
+  return w;
+}
+
+function kitCase(p,x,y,s=1){
+  const k=g(p,{transform:`translate(${x} ${y}) scale(${s})`});
+  L(k,"M-30 -46 Q0 -80 30 -46",C.ink,10); R(tex(k),-80,-50,160,110,16,C.cream);
+  el("image",{href:"app-icon-tide.png",x:-26,y:-22,width:52,height:52},k);
+  return k;
+}
+
+// ---------- captions (white, dark outline, like the reference) ----------
+function caption(str, y=1585, size=60){
+  const cap=document.getElementById("captions"); const lines=[].concat(str); const out=[];
+  lines.forEach((ln,i)=>{
+    const yy=y+(i-(lines.length-1))*size*1.45;
+    const grp=g(cap); const bg=el("rect",{fill:"#2B2730",opacity:.82,rx:size*0.55},grp);
+    const t=T(grp,540,yy,ln,size,C.white,700);
+    const bb=t.getBBox(); const px=size*0.55, pv=size*0.22;
+    bg.setAttribute("x",bb.x-px); bg.setAttribute("y",bb.y-pv); bg.setAttribute("width",bb.width+2*px); bg.setAttribute("height",bb.height+2*pv);
+    out.push(grp);
+  });
+  return out;
+}
+
+</script>
+<script src="words.js"></script>
+<script src="scenes.js"></script>
+</body></html>
